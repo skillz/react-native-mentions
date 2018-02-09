@@ -81,7 +81,6 @@ export class MentionsTextInput extends Component {
       const delay = this.props.triggerDelay ? this.props.triggerDelay : 0;
       const pattern = new RegExp(`\\${boundary}${this.props.trigger}[a-z0-9_-]{${delay},}`, `gi`);
       const keywordArray = val.match(pattern);
-      console.log('MENTIONS_TEXT_INPUT: ' + keywordArray);
       if (keywordArray && !!keywordArray.length) {
         const lastKeyword = keywordArray[keywordArray.length - 1];
         this.updateSuggestions(lastKeyword);
