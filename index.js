@@ -14,11 +14,11 @@ export class MentionsTextInput extends Component {
     super();
     this.state = {
       textInputHeight: "",
-      isTrackingStrated: false,
+      isTrackingStarted: false,
       suggestionsPanelHeight: new Animated.Value(0),
 
     }
-    this.isTrackingStrated = false;
+    this.isTrackingStarted = false;
     this.previousChar = " ";
   }
 
@@ -35,22 +35,24 @@ export class MentionsTextInput extends Component {
   }
 
   startTracking() {
-    this.isTrackingStrated = true;
-    this.openSuggestionsPanel();
+    this.isTrackingStarted = true;
     this.setState({
-      isTrackingStrated: true
+      isTrackingStarted: true
     })
   }
 
   stopTracking() {
-    this.isTrackingStrated = false;
-    this.closeSuggestionsPanel();
+    this.isTrackingStarted = false;
     this.setState({
-      isTrackingStrated: false
+      isTrackingStarted: false
     })
   }
 
   openSuggestionsPanel() {
+    if (this.props.onOpenSuggestionsPanel) {
+      this.props.onOpenSuggestionsPanel();
+    }
+
     Animated.spring(this.state.suggestionsPanelHeight, {
       duration: 100,
       toValue: this.props.suggestionsPanelHeight,
@@ -59,6 +61,10 @@ export class MentionsTextInput extends Component {
   }
 
   closeSuggestionsPanel() {
+    if (this.props.onCloseSuggestionsPanel) {
+      this.props.onCloseSuggestionsPanel();
+    }
+
     Animated.timing(this.state.suggestionsPanelHeight, {
       toValue: 0,
       duration: 100,
@@ -70,13 +76,18 @@ export class MentionsTextInput extends Component {
   }
 
   identifyKeyword(val) {
-    if (this.isTrackingStrated) {
+    if (this.isTrackingStarted) {
       const boundary = this.props.triggerLocation === 'new-word-only' ? 'B': '';
-      const pattern = new RegExp(`\\${boundary}${this.props.trigger}[a-z0-9_-]+|\\${boundary}${this.props.trigger}`, `gi`);
+      const delay = this.props.triggerDelay ? this.props.triggerDelay : 0;
+      const pattern = new RegExp(`\\${boundary}${this.props.trigger}[a-z0-9_-]{${delay},}`, `gi`);
       const keywordArray = val.match(pattern);
+      console.log('MENTIONS_TEXT_INPUT: ' + keywordArray);
       if (keywordArray && !!keywordArray.length) {
         const lastKeyword = keywordArray[keywordArray.length - 1];
         this.updateSuggestions(lastKeyword);
+        this.openSuggestionsPanel();
+      } else {
+        this.closeSuggestionsPanel();
       }
     }
   }
@@ -84,12 +95,13 @@ export class MentionsTextInput extends Component {
   onChangeText(val) {
     this.props.onChangeText(val); // pass changed text back
     const lastChar = val.substr(val.length - 1);
-    const wordBoundry = (this.props.triggerLocation === 'new-word-only') ? this.previousChar.trim().length === 0 : true;
-    if (lastChar === this.props.trigger && wordBoundry ) {
+    const wordBoundary = (this.props.triggerLocation === 'new-word-only') ? this.previousChar.trim().length === 0 : true;
+    if (lastChar === this.props.trigger && wordBoundary ) {
       this.startTracking();
-    } else if (lastChar === ' ' && this.state.isTrackingStrated || val === "") {
+    } else if (lastChar === ' ' && this.state.isTrackingStarted || val === "") {
       this.stopTracking();
     }
+
     this.previousChar = lastChar;
     this.identifyKeyword(val);
   }
