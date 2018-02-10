@@ -14,12 +14,11 @@ export class MentionsTextInput extends Component {
     super();
     this.state = {
       textInputHeight: "",
-      isTrackingStarted: false,
       suggestionsPanelHeight: new Animated.Value(0),
 
     }
+
     this.isTrackingStarted = false;
-    this.previousChar = " ";
   }
 
   componentWillMount() {
@@ -36,16 +35,11 @@ export class MentionsTextInput extends Component {
 
   startTracking() {
     this.isTrackingStarted = true;
-    this.setState({
-      isTrackingStarted: true
-    })
   }
 
   stopTracking() {
+    this.closeSuggestionsPanel();
     this.isTrackingStarted = false;
-    this.setState({
-      isTrackingStarted: false
-    })
   }
 
   openSuggestionsPanel() {
@@ -71,6 +65,13 @@ export class MentionsTextInput extends Component {
     }).start();
   }
 
+  isTriggerDeleted(cursor) {
+    return false;
+  }
+
+  handleTriggerDeletion(cursor) {
+  }
+
   updateSuggestions(lastKeyword) {
     this.props.triggerCallback(lastKeyword);
   }
@@ -91,18 +92,33 @@ export class MentionsTextInput extends Component {
     }
   }
 
-  onChangeText(val) {
-    this.props.onChangeText(val); // pass changed text back
-    const lastChar = val.substr(val.length - 1);
-    const wordBoundary = (this.props.triggerLocation === 'new-word-only') ? this.previousChar.trim().length === 0 : true;
-    if (lastChar === this.props.trigger && wordBoundary ) {
-      this.startTracking();
-    } else if (lastChar === ' ' && this.state.isTrackingStarted || val === "") {
-      this.stopTracking();
-    }
+  onChangeText(text) {
+    this.props.onChangeText(text);
+    this.text = text;
+    this.didTextChange = true;
+  }
 
-    this.previousChar = lastChar;
-    this.identifyKeyword(val);
+  onSelectionChange(selection) {
+    if (this.didTextChange && selection.start === selection.end) {
+      // typed to move cursor
+      const cursor = selection.start;
+      const lastChar = this.text[cursor - 1];
+      const wordBoundary = (this.props.triggerLocation === 'new-word-only') ? cursor - 1 === 0 || this.text[cursor - 2] === ' ' : true;
+      if (lastChar === this.props.trigger && wordBoundary) {
+        this.startTracking();
+      } else if (this.isTrackingStarted && (lastChar === ' ' || this.text === '')) {
+        this.stopTracking();
+      } else if (this.isTriggerDeleted(cursor)) {
+        this.stopTracking();
+        this.handleTriggerDeletion(cursor);
+      }
+
+      this.identifyKeyword(this.text);
+    } else if (selection.start === selection.end) {
+      // clicked to move cursor
+    } else {
+      // cursor selecting chars from selection.start to selection.end
+    }
   }
 
   resetTextbox() {
@@ -132,6 +148,7 @@ export class MentionsTextInput extends Component {
           } }
           ref={component => this._textInput = component}
           onChangeText={this.onChangeText.bind(this)}
+          onSelectionChange={(event) => { this.onSelectionChange(event.nativeEvent.selection); }}
           multiline={true}
           value={this.props.value}
           style={[{ ...this.props.textInputStyle }, { height: Math.min(this.props.textInputMaxHeight, this.state.textInputHeight) }]}
