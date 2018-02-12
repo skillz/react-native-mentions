@@ -18,6 +18,7 @@ export class MentionsTextInput extends Component {
 
     }
 
+    this.triggerMatrix = [];
     this.isTrackingStarted = false;
   }
 
@@ -33,8 +34,49 @@ export class MentionsTextInput extends Component {
     }
   }
 
-  startTracking() {
+  getSucceedingTriggerIndex(position, start = 0, end = Number.MAX_SAFE_INTEGER, lastBiggerIndex = -1) {
+    if (!this.triggerMatrix || !this.triggerMatrix.length || start > end) {
+      return lastBiggerIndex;
+    }
+
+    if (lastBiggerIndex == -1) {
+      lastBiggerIndex = this.triggerMatrix.length - 1;
+    }
+
+    if (end === Number.MAX_SAFE_INTEGER) {
+      end = this.triggerMatrix.length - 1;
+    }
+
+
+    if (start == end) {
+      return this.triggerMatrix[start][0] <= position && position <= this.triggerMatrix[start][1] ? start : lastBiggerIndex;
+    }
+
+    const middle = Math.trunc((start + end) / 2);
+    if (this.triggerMatrix[middle][0] <= position && position <= this.triggerMatrix[middle][1]) {
+      return middle;
+    } else if (this.triggerMatrix[middle][1] < position) {
+      return this.getSucceedingTriggerIndex(position, middle + 1, end, lastBiggerIndex);
+    } else {
+      return this.getSucceedingTriggerIndex(position, start, middle - 1, middle);
+    }
+  }
+
+  startTracking(start) {
     this.isTrackingStarted = true;
+    const index = this.getSucceedingTriggerIndex(start);
+    if (index === -1) {
+      this.triggerMatrix = [[start, start]];
+      this.triggerMatrixIndex = 0;
+    } else if (start < this.triggerMatrix[index][0]) {
+      this.triggerMatrix.splice(index, 0, [start, start]);
+      this.triggerMatrixIndex = index;
+    } else if (this.triggerMatrix[index][1] < start && index === this.triggerMatrix.length - 1) {
+      this.triggerMatrix.push([start, start]);
+      this.triggerMatrixIndex = this.triggerMatrix.length - 1;
+    } else {
+      this.triggerMatrixIndex = index;
+    }
   }
 
   stopTracking() {
@@ -105,7 +147,7 @@ export class MentionsTextInput extends Component {
       const lastChar = this.text[cursor - 1];
       const wordBoundary = (this.props.triggerLocation === 'new-word-only') ? cursor - 1 === 0 || this.text[cursor - 2] === ' ' : true;
       if (lastChar === this.props.trigger && wordBoundary) {
-        this.startTracking();
+        this.startTracking(cursor);
       } else if (this.isTrackingStarted && (lastChar === ' ' || this.text === '')) {
         this.stopTracking();
       } else if (this.isTriggerDeleted(cursor)) {
