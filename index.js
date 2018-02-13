@@ -65,6 +65,15 @@ export class MentionsTextInput extends Component {
     this.props.triggerCallback(lastKeyword);
   }
 
+  handleClick(position) {
+    if (!this.isTrackingStarted) {
+      const index = this.getSubsequentTriggerIndex(position);
+      if (this.isPositionWithinTrigger(position, index)) {
+        this.startTracking(position, index);
+      }
+    }
+  }
+
   identifyKeyword(val) {
     if (this.isTrackingStarted) {
       const boundary = this.props.triggerLocation === 'new-word-only' ? 'B': '';
@@ -106,9 +115,6 @@ export class MentionsTextInput extends Component {
   stopTracking() {
     this.closeSuggestionsPanel();
     this.isTrackingStarted = false;
-  }
-
-  handleTriggerDeletion(position) {
   }
 
   getSubsequentTriggerIndex(position, start = 0, end = Number.MAX_SAFE_INTEGER, lastBiggerIndex = -1) {
@@ -155,9 +161,12 @@ export class MentionsTextInput extends Component {
     return index === -1;
   }
 
-  startTracking(position) {
+  startTracking(position, index = -2) {
     this.isTrackingStarted = true;
-    const index = this.getSubsequentTriggerIndex(position);
+
+    if (index === -2) {
+      index = this.getSubsequentTriggerIndex(position);
+    }
 
     if (this.isTriggerMatrixEmpty(index)) {
       this.triggerMatrix = [[position, position]];
@@ -182,20 +191,31 @@ export class MentionsTextInput extends Component {
     }
 
     for (let i = index; i < this.triggerMatrix.length; i++) {
-      if (this.triggerMatrix[i][0] >= position) {
-        this.triggerMatrix[i][0]++;
+      if (this.isPositionWithinTrigger(position, index)) {
+        continue;
       }
 
+      this.triggerMatrix[i][0]++;
       this.triggerMatrix[i][1]++;
     }
   }
 
+  handleTriggerDeletion(index) {
+    this.triggerMatrix.splice(index, 1);
+    this.isTriggerDeleted = true;
+  }
+
   handleTriggerMatrixShiftLeft(position, index) {
+    if (position === this.triggerMatrix[index][0] - 1) {
+      this.handleTriggerDeletion(index);
+    }
+
     for (let i = index; i < this.triggerMatrix.length; i++) {
-      if (this.triggerMatrix[i][0] >= position) {
-        this.triggerMatrix[i][0]--;
+      if (this.isPositionWithinTrigger(position, index)) {
+        continue;
       }
 
+      this.triggerMatrix[i][0]--;
       this.triggerMatrix[i][1]--;
     }
   }
@@ -221,35 +241,41 @@ export class MentionsTextInput extends Component {
     }
   }
 
+  handleTyping(position) {
+    const lastChar = this.text[position];
+    const wordBoundary = (this.props.triggerLocation === 'new-word-only') ? position === 0 || this.text[position - 1] === ' ' : true;
+
+    this.handleTriggerMatrixChanges(position);
+
+    if (this.isTriggerDeleted) {
+      this.stopTracking();
+
+    } else if (!this.isTrackingStarted && lastChar === this.props.trigger && wordBoundary) {
+      this.startTracking(position);
+
+    } else if (this.isTrackingStarted && (lastChar === ' ' || this.text === '')) {
+      this.stopTracking();
+
+    } else if (this.isTrackingStarted) {
+      this.updateTriggerMatrixIndex(position);
+    }
+
+    this.identifyKeyword(this.text);
+  }
+
   onSelectionChange(selection) {
     if (this.didTextChange && selection.start === selection.end) {
+      this.handleTyping(selection.start - 1);
 
-      // typed to move cursor
-
-      const lastCharIndex = selection.start - 1;
-      const lastChar = this.text[lastCharIndex];
-      const wordBoundary = (this.props.triggerLocation === 'new-word-only') ? lastCharIndex === 0 || this.text[lastCharIndex - 1] === ' ' : true;
-
-      this.handleTriggerMatrixChanges(lastCharIndex);
-
-      if (!this.isTrackingStarted && lastChar === this.props.trigger && wordBoundary) {
-        this.startTracking(lastCharIndex);
-      } else if (this.isTrackingStarted && (lastChar === ' ' || this.text === '')) {
-        this.stopTracking();
-      } else if (this.isTriggerDeleted) {
-        this.stopTracking();
-      } else if (this.isTrackingStarted) {
-        this.updateTriggerMatrixIndex(lastCharIndex);
-      }
-
-      this.identifyKeyword(this.text);
     } else if (selection.start === selection.end) {
-      // clicked to move cursor
+      this.handleClick(selection.start - 1);
+
     } else {
       // cursor selecting chars from selection.start to selection.end
     }
 
     this.didTextChange = false;
+    this.isTriggerDeleted = false;
     this.lastTextLength = this.text.length;
   }
 
