@@ -139,20 +139,64 @@ export class MentionsTextInput extends Component {
     }
   }
 
-  startTracking(start) {
+  isPositionWithinTrigger(position, index) {
+    return this.triggerMatrix[index][0] <= position && position <= this.triggerMatrix[index][1];
+  }
+
+  isPositionAfterBiggestTrigger(position, index) {
+    return this.triggerMatrix[index][1] < position && index === this.triggerMatrix.length - 1;
+  }
+
+  isPositionBeforeNextTrigger(position, index) {
+    return position < this.triggerMatrix[index][0];
+  }
+
+  isTriggerMatrixEmpty(index) {
+    return index === -1;
+  }
+
+  startTracking(position) {
     this.isTrackingStarted = true;
-    const index = this.getSubsequentTriggerIndex(start);
-    if (index === -1) {
-      this.triggerMatrix = [[start, start]];
+    const index = this.getSubsequentTriggerIndex(position);
+
+    if (this.isTriggerMatrixEmpty(index)) {
+      this.triggerMatrix = [[position, position]];
       this.triggerMatrixIndex = 0;
-    } else if (start < this.triggerMatrix[index][0]) {
-      this.triggerMatrix.splice(index, 0, [start, start]);
+
+    } else if (this.isPositionBeforeNextTrigger(position, index)) {
+      this.triggerMatrix.splice(index, 0, [position, position]);
       this.triggerMatrixIndex = index;
-    } else if (this.triggerMatrix[index][1] < start && index === this.triggerMatrix.length - 1) {
-      this.triggerMatrix.push([start, start]);
+
+    } else if (this.isPositionAfterBiggestTrigger(position, index)) {
+      this.triggerMatrix.push([position, position]);
       this.triggerMatrixIndex = this.triggerMatrix.length - 1;
-    } else {
+
+    } else if (this.isPositionWithinTrigger(position, index)) {
       this.triggerMatrixIndex = index;
+    }
+  }
+
+  handleTriggerMatrixShiftRight(position, index) {
+    if (index === this.triggerMatrix.length - 1 && this.triggerMatrix[index][1] < position && position === this.text.length - 1) {
+      return;
+    }
+
+    for (let i = index; i < this.triggerMatrix.length; i++) {
+      if (this.triggerMatrix[i][0] >= position) {
+        this.triggerMatrix[i][0]++;
+      }
+
+      this.triggerMatrix[i][1]++;
+    }
+  }
+
+  handleTriggerMatrixShiftLeft(position, index) {
+    for (let i = index; i < this.triggerMatrix.length; i++) {
+      if (this.triggerMatrix[i][0] >= position) {
+        this.triggerMatrix[i][0]--;
+      }
+
+      this.triggerMatrix[i][1]--;
     }
   }
 
@@ -166,21 +210,14 @@ export class MentionsTextInput extends Component {
     }
 
     const index = this.getSubsequentTriggerIndex(position);
-    if (index === -1 || index >= this.triggerMatrix.length || (index === this.triggerMatrix.length - 1 && this.triggerMatrix[index][1] < position)) {
+    if (index === -1 || index >= this.triggerMatrix.length) {
       return;
     }
 
     if (this.getTextDifference() < 0) {
-      // handle deletions
-      return;
-    }
-
-    for (let i = index; i < this.triggerMatrix.length; i++) {
-      if (this.triggerMatrix[i][0] >= position) {
-        this.triggerMatrix[i][0]++;
-      }
-
-      this.triggerMatrix[i][1]++;
+      this.handleTriggerMatrixShiftLeft(position, index);
+    } else {
+      this.handleTriggerMatrixShiftRight(position, index);
     }
   }
 
