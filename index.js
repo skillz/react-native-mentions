@@ -250,7 +250,9 @@ export class MentionsTextInput extends Component {
       this.didDeleteTriggerKeyword = true;
       this.shouldDeleteTriggerOnBackspace = false;
       this.handleTriggerMatrixShiftLeft(start - 1, this.getSubsequentTriggerIndex(start), 1);
-      this.setState({ text: preTriggerText + space + postTriggerText });
+      this.setState({ text: preTriggerText + space + postTriggerText }, () => {
+        this.startTracking(start);
+      });
     }, 50);
   }
 
@@ -264,11 +266,15 @@ export class MentionsTextInput extends Component {
       return;
     }
 
-    if (position === this.triggerMatrix[index][0] - 1 && !this.didDeleteTriggerKeyword) {
-      this.handleTriggerDeletion(index);
-      if (this.triggerMatrix.length <= index) {
-        return;
+    if (!this.didDeleteTriggerKeyword) {
+      if (position === this.triggerMatrix[index][0] - 1) {
+        this.handleTriggerDeletion(index);
+        if (this.triggerMatrix.length <= index) {
+          return;
+        }
       }
+    } else {
+      this.didDeleteTriggerKeyword = false;
     }
 
     if (this.shouldDeleteTriggerOnBackspace) {
