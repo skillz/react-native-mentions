@@ -66,11 +66,14 @@ export class MentionsTextInput extends Component {
   }
 
   handleClick(position) {
-    if (!this.isTrackingStarted) {
-      const index = this.getSubsequentTriggerIndex(position);
-      if (this.isPositionWithinTrigger(position, index)) {
-        this.startTracking(position, index);
-      }
+    const index = this.getSubsequentTriggerIndex(position);
+    if (this.isPositionWithinTrigger(position, index)) {
+      this.startTracking(position, index);
+      return;
+    }
+
+    if (position === -1 || this.text && this.text[position] === ' ') {
+      this.stopTracking();
     }
   }
 
@@ -104,6 +107,7 @@ export class MentionsTextInput extends Component {
     const pattern = new RegExp(`${this.props.trigger}[a-z0-9_-]*`, `gi`);
     const triggerText = this.text.slice(this.triggerMatrix[index][0], this.triggerMatrix[index][1] + 2);
     const keywordArray = triggerText.match(pattern);
+
     if (keywordArray && !!keywordArray.length) {
       const keyword = keywordArray[0];
       this.triggerMatrix[index][1] = this.triggerMatrix[index][0] + keyword.length - 1;
@@ -115,6 +119,7 @@ export class MentionsTextInput extends Component {
   stopTracking() {
     this.closeSuggestionsPanel();
     this.isTrackingStarted = false;
+    console.debug('MENTIONS_TEXT_INPUT: stopTracking');
   }
 
   getSubsequentTriggerIndex(position, start = 0, end = Number.MAX_SAFE_INTEGER, lastBiggerIndex = -1) {
@@ -138,26 +143,28 @@ export class MentionsTextInput extends Component {
     const middle = Math.trunc((start + end) / 2);
     if (this.triggerMatrix[middle][0] <= position && position <= this.triggerMatrix[middle][1]) {
       return middle;
+
     } else if (this.triggerMatrix[middle][1] < position) {
       return this.getSubsequentTriggerIndex(position, middle + 1, end, lastBiggerIndex);
+
     } else {
       return this.getSubsequentTriggerIndex(position, start, middle - 1, middle);
     }
   }
 
-  isPositionWithinTrigger(position, index) {
-    return this.triggerMatrix[index][0] <= position && position <= this.triggerMatrix[index][1];
+  isPositionWithinTrigger(position = 0, index = 0) {
+    return this.triggerMatrix && this.triggerMatrix.length && this.triggerMatrix[index][0] <= position && position <= this.triggerMatrix[index][1];
   }
 
-  isPositionAfterBiggestTrigger(position, index) {
-    return this.triggerMatrix[index][1] < position && index === this.triggerMatrix.length - 1;
+  isPositionAfterBiggestTrigger(position = 0, index = 0) {
+    return !this.triggerMatrix || !this.triggerMatrix.length || this.triggerMatrix[index][1] < position && index === this.triggerMatrix.length - 1;
   }
 
-  isPositionBeforeNextTrigger(position, index) {
-    return position < this.triggerMatrix[index][0];
+  isPositionBeforeNextTrigger(position = 0, index = 0) {
+    return !this.triggerMatrix || !this.triggerMatrix.length || position < this.triggerMatrix[index][0];
   }
 
-  isTriggerMatrixEmpty(index) {
+  isTriggerMatrixEmpty(index = 0) {
     return index === -1;
   }
 
@@ -186,12 +193,12 @@ export class MentionsTextInput extends Component {
   }
 
   handleTriggerMatrixShiftRight(position, index) {
-    if (index === this.triggerMatrix.length - 1 && this.triggerMatrix[index][1] < position && position === this.text.length - 1) {
+    if (this.isPositionAfterBiggestTrigger(position, index)) {
       return;
     }
 
     for (let i = index; i < this.triggerMatrix.length; i++) {
-      if (this.isPositionWithinTrigger(position, index)) {
+      if (this.isPositionWithinTrigger(position - 1, i)) {
         continue;
       }
 
@@ -206,12 +213,16 @@ export class MentionsTextInput extends Component {
   }
 
   handleTriggerMatrixShiftLeft(position, index) {
+    if (this.isPositionAfterBiggestTrigger(position, index)) {
+      return;
+    }
+
     if (position === this.triggerMatrix[index][0] - 1) {
       this.handleTriggerDeletion(index);
     }
 
     for (let i = index; i < this.triggerMatrix.length; i++) {
-      if (this.isPositionWithinTrigger(position, index)) {
+      if (this.isPositionWithinTrigger(position, i)) {
         continue;
       }
 
