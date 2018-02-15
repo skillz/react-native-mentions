@@ -17,7 +17,6 @@ export class MentionsTextInput extends Component {
       textInputHeight: '',
       suggestionsPanelHeight: new Animated.Value(0),
       text: this.props.value ? this.props.value : '',
-      selection: {start: 0, end: 0},
     }
 
     this.lastTextLength = 0;
@@ -73,7 +72,7 @@ export class MentionsTextInput extends Component {
       const delay = this.props.triggerDelay ? this.props.triggerDelay : 0;
       if (keyword && keyword.length > delay) {
         if (this.props.triggerCallback) {
-          this.props.triggerCallback(keyword);
+          this.props.triggerCallback(keyword, this.getSubsequentTriggerIndex(position), this.triggerMatrix);
         }
 
         this.openSuggestionsPanel();
@@ -376,12 +375,12 @@ export class MentionsTextInput extends Component {
     } else if (this.isTrackingStarted) {
       this.updateTriggerMatrixIndex(position);
     }
-
-    this.handleDisplaySuggestions(this.state.text);
   }
 
   onSelectionChange(selection) {
-    this.setState({ selection });
+    if (this.props.onSelectionChange) {
+      this.props.onSelectionChange();
+    }
 
     const position = selection.end - 1;
     if (this.didTextChange && selection.start === selection.end) {
@@ -402,7 +401,10 @@ export class MentionsTextInput extends Component {
   }
 
   onChangeText(text) {
-    this.props.onChangeText(text);
+    if (this.props.onChangeText) {
+      this.props.onChangeText(text);
+    }
+
     this.didTextChange = true;
     this.setState({ text });
   }
@@ -429,7 +431,6 @@ export class MentionsTextInput extends Component {
           } }
           ref={component => this._textInput = component}
           onChangeText={this.onChangeText.bind(this)}
-          selection={this.state.selection}
           onSelectionChange={(event) => { this.onSelectionChange(event.nativeEvent.selection); }}
           multiline={true}
           value={this.state.text}
