@@ -79,7 +79,7 @@ export class MentionsTextInput extends Component {
       const delay = this.props.triggerDelay ? this.props.triggerDelay : 0;
       if (keyword && keyword.length > delay) {
         if (this.props.triggerCallback) {
-          this.props.triggerCallback(keyword, this.getSubsequentTriggerIndex(position), this.triggerMatrix);
+          this.props.triggerCallback(keyword, this.triggerMatrix, this.getSubsequentTriggerIndex(position));
         }
 
         this.openSuggestionsPanel();
