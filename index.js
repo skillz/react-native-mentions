@@ -20,6 +20,7 @@ export class MentionsTextInput extends Component {
     }
 
     this.lastTextLength = 0;
+    this.lastTriggerIndex = 0;
     this.triggerMatrix = [];
     this.isTrackingStarted = false;
   }
@@ -30,14 +31,46 @@ export class MentionsTextInput extends Component {
     })
   }
 
+  reloadTriggerMatrix(text) {
+    this.triggerMatrix = [];
+    let start = 0;
+    let triggered = false;
+    for (let i = 0; i < text.length; i++) {
+      if (!triggered && text[i] === '@' && (i == 0 || text[i - 1] === ' ')) {
+        start = i;
+        triggered = true;
+      } else if (triggered && text[i] === ' ') {
+        this.triggerMatrix.push([start, i - 1]);
+        triggered = false;
+      } else if (triggered && i === text.length - 1) {
+        this.triggerMatrix.push([start, i]);
+      }
+    }
+  }
+
   componentWillReceiveProps(nextProps) {
     if (!nextProps.value) {
       this.resetTextbox();
     }
+
+    setTimeout(() => {
+      if (this.isTrackingStarted && nextProps.didPressSuggestion && nextProps.value != this.state.text && !this.didDeleteTriggerKeyword) {
+        this.reloadTriggerMatrix(nextProps.value);
+        this.stopTracking();
+        this.setState({ text: nextProps.value });
+      }
+    }, 50);
   }
 
   resetTextbox() {
     this.setState({ textInputHeight: this.props.textInputMinHeight });
+  }
+
+  handleReset() {
+    this.didTextChange = false;
+    this.isTriggerDeleted = false;
+    this.didPropsChangeText = false;
+    this.lastTextLength = this.state.text.length;
   }
 
   openSuggestionsPanel() {
@@ -88,7 +121,7 @@ export class MentionsTextInput extends Component {
     }
 
   handleDeleteTriggerOnBackspace(position = 0, index = -2) {
-    if (!this.triggerMatrix || !this.triggerMatrix.length) {
+    if (!this.triggerMatrix || !this.triggerMatrix.length || this.didPropsChangeText) {
       return;
     }
 
@@ -100,8 +133,7 @@ export class MentionsTextInput extends Component {
     const isAtEndOfTrigger = this.triggerMatrix[index][1] === position;
     const isFollowedBySpace = this.state.text[position + 1] === ' ';
 
-    this.shouldDeleteTriggerOnBackspace = (!this.isTrackingStarted && isAtEnd)
-                                       || (isAtEndOfTrigger && (isAtEnd || isFollowedBySpace));
+    this.shouldDeleteTriggerOnBackspace = isAtEndOfTrigger && (isAtEnd || isFollowedBySpace);
   }
 
   handleClick(position) {
@@ -116,6 +148,7 @@ export class MentionsTextInput extends Component {
       this.startTracking(position, index);
       return;
     }
+
 
     if (position === -1
           || this.state.text && this.state.text[position] === ' '
@@ -179,12 +212,15 @@ export class MentionsTextInput extends Component {
     return keywordArray && keywordArray.length ? keywordArray[0] : '';
   }
 
-  updateTriggerMatrixIndex(position) {
+  updateTriggerMatrixIndex(position, index = -2) {
     if (!this.triggerMatrix || !this.triggerMatrix.length || !this.isTrackingStarted) {
       return;
     }
 
-    const index = this.getSubsequentTriggerIndex(position);
+    if (index === -2) {
+      index = this.getSubsequentTriggerIndex(position);
+    }
+
     const keyword = this.getTriggerKeyword(position, index);
     if (!keyword || !keyword.length) {
       return;
@@ -265,12 +301,18 @@ export class MentionsTextInput extends Component {
 
     if (this.isTriggerMatrixEmpty(index)) {
       this.triggerMatrix = [[position, position]];
+      this.lastTriggerIndex = 0;
 
     } else if (this.isPositionBeforeNextTrigger(position, index)) {
       this.triggerMatrix.splice(index, 0, [position, position]);
+      this.lastTriggerIndex = index;
 
     } else if (this.isPositionAfterBiggestTrigger(position, index)) {
       this.triggerMatrix.push([position, position]);
+      this.lastTriggerIndex = this.triggerMatrix.length - 1;
+
+    } else if (this.isPositionWithinTrigger(position, index)) {
+      this.lastTriggerIndex = index;
     }
   }
 
@@ -326,20 +368,16 @@ export class MentionsTextInput extends Component {
       return;
     }
 
-    if (!this.didDeleteTriggerKeyword) {
-      if (position === this.triggerMatrix[index][0] - 1) {
-        this.handleTriggerDeletion(index);
-        if (this.triggerMatrix.length <= index) {
-          return;
-        }
-      }
-    } else {
-      this.didDeleteTriggerKeyword = false;
-    }
-
     if (this.shouldDeleteTriggerOnBackspace) {
       this.deleteTriggerKeyword(index);
       return;
+    }
+
+    if (position === this.triggerMatrix[index][0] - 1) {
+      this.handleTriggerDeletion(index);
+      if (this.triggerMatrix.length <= index) {
+        return;
+      }
     }
 
     for (let i = index; i < this.triggerMatrix.length; i++) {
@@ -356,12 +394,15 @@ export class MentionsTextInput extends Component {
     return this.state.text.length - this.lastTextLength;
   }
 
-  handleTriggerMatrixChanges(position) {
+  handleTriggerMatrixChanges(position, index = -2) {
     if (!this.triggerMatrix || !this.triggerMatrix.length || this.getTextDifference() == 0) {
       return;
     }
 
-    const index = this.getSubsequentTriggerIndex(position);
+    if (index === -2) {
+      index = this.getSubsequentTriggerIndex(position);
+    }
+
     if (index === -1 || index >= this.triggerMatrix.length) {
       return;
     }
@@ -395,7 +436,7 @@ export class MentionsTextInput extends Component {
       this.stopTracking();
 
     } else if (this.isTrackingStarted) {
-      this.updateTriggerMatrixIndex(position);
+      this.updateTriggerMatrixIndex(position - 1);
     }
   }
 
@@ -403,6 +444,8 @@ export class MentionsTextInput extends Component {
     if (this.props.onSelectionChange) {
       this.props.onSelectionChange();
     }
+
+    this.didDeleteTriggerKeyword = false;
 
     const position = selection.end - 1;
     if (this.didTextChange && selection.start === selection.end) {
@@ -416,10 +459,7 @@ export class MentionsTextInput extends Component {
     }
 
     this.handleDisplaySuggestions(position);
-
-    this.didTextChange = false;
-    this.isTriggerDeleted = false;
-    this.lastTextLength = this.state.text.length;
+    this.handleReset();
   }
 
   onChangeText(text) {
@@ -454,6 +494,7 @@ export class MentionsTextInput extends Component {
           ref={component => this._textInput = component}
           onChangeText={this.onChangeText.bind(this)}
           onSelectionChange={(event) => { this.onSelectionChange(event.nativeEvent.selection); }}
+          returnKeyType={this.props.returnKeyType ? this.props.returnKeyType : 'send'}
           multiline={true}
           value={this.state.text}
           style={[{ ...this.props.textInputStyle }, { height: Math.min(this.props.textInputMaxHeight, this.state.textInputHeight) }]}
