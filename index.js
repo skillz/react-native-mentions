@@ -54,8 +54,7 @@ export class MentionsTextInput extends Component {
     }
 
     setTimeout(() => {
-      console.debug('CHAT_INPUT_TOOLBAR: componentWillReceiveProps: ' + nextProps.value + ', ' + this.state.text);
-      if (this.isTrackingStarted && nextProps.value != this.state.text && !this.didDeleteTriggerKeyword) {
+      if (this.isTrackingStarted && nextProps.didPressSuggestion && nextProps.value != this.state.text && !this.didDeleteTriggerKeyword) {
         this.reloadTriggerMatrix(nextProps.value);
         this.stopTracking();
         this.setState({ text: nextProps.value });
@@ -65,6 +64,13 @@ export class MentionsTextInput extends Component {
 
   resetTextbox() {
     this.setState({ textInputHeight: this.props.textInputMinHeight });
+  }
+
+  handleReset() {
+    this.didTextChange = false;
+    this.isTriggerDeleted = false;
+    this.didPropsChangeText = false;
+    this.lastTextLength = this.state.text.length;
   }
 
   openSuggestionsPanel() {
@@ -115,7 +121,7 @@ export class MentionsTextInput extends Component {
     }
 
   handleDeleteTriggerOnBackspace(position = 0, index = -2) {
-    if (!this.triggerMatrix || !this.triggerMatrix.length) {
+    if (!this.triggerMatrix || !this.triggerMatrix.length || this.didPropsChangeText) {
       return;
     }
 
@@ -127,8 +133,7 @@ export class MentionsTextInput extends Component {
     const isAtEndOfTrigger = this.triggerMatrix[index][1] === position;
     const isFollowedBySpace = this.state.text[position + 1] === ' ';
 
-    this.shouldDeleteTriggerOnBackspace = (!this.isTrackingStarted && isAtEnd)
-                                       || (isAtEndOfTrigger && (isAtEnd || isFollowedBySpace));
+    this.shouldDeleteTriggerOnBackspace = isAtEndOfTrigger && (isAtEnd || isFollowedBySpace);
   }
 
   handleClick(position) {
@@ -440,8 +445,9 @@ export class MentionsTextInput extends Component {
       this.props.onSelectionChange();
     }
 
-    const position = selection.end - 1;
     this.didDeleteTriggerKeyword = false;
+
+    const position = selection.end - 1;
     if (this.didTextChange && selection.start === selection.end) {
       this.handleTyping(position);
 
@@ -453,11 +459,7 @@ export class MentionsTextInput extends Component {
     }
 
     this.handleDisplaySuggestions(position);
-
-    this.didTextChange = false;
-    this.isTriggerDeleted = false;
-    this.lastTextLength = this.state.text.length;
-    console.debug('CHAT_INPUT_TOOLBAR: onSelectionChange: ' + JSON.stringify(this.triggerMatrix));
+    this.handleReset();
   }
 
   onChangeText(text) {
