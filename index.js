@@ -56,6 +56,12 @@ export class MentionsTextInput extends Component {
     setTimeout(() => {
       if (this.isTrackingStarted && nextProps.didPressSuggestion && nextProps.value != this.state.text && !this.didDeleteTriggerKeyword) {
         this.reloadTriggerMatrix(nextProps.value);
+        if (this.props.triggerCallback && this.triggerMatrix) {
+          const keyword = this.triggerMatrix.length ? this.triggerMatrix[this.triggerMatrix.length - 1] : null;
+          const index = this.triggerMatrix.length ? this.triggerMatrix.length - 1 : null;
+          this.props.triggerCallback(keyword, this.triggerMatrix, index);
+        }
+
         this.stopTracking();
         this.setState({ text: nextProps.value });
       }
