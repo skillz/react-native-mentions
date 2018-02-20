@@ -505,10 +505,11 @@ export class MentionsTextInput extends Component {
           onChangeText={this.onChangeText.bind(this)}
           onSelectionChange={(event) => { this.onSelectionChange(event.nativeEvent.selection); }}
           returnKeyType={this.props.returnKeyType ? this.props.returnKeyType : 'send'}
+          onKeyPress={(e) => { if (this.props.onKeyPress) {this.props.onKeyPress(e);} }}
           multiline={true}
           value={this.state.text}
           style={[{ ...this.props.textInputStyle }, { height: Math.min(this.props.textInputMaxHeight, this.state.textInputHeight) }]}
-          placeholder={'Write a comment...'}
+          placeholder={this.props.placeholder ? this.props.placeholder : 'Write a comment...'}
           />
       </View>
     )
