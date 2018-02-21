@@ -56,6 +56,12 @@ export class MentionsTextInput extends Component {
     setTimeout(() => {
       if (this.isTrackingStarted && nextProps.didPressSuggestion && nextProps.value != this.state.text && !this.didDeleteTriggerKeyword) {
         this.reloadTriggerMatrix(nextProps.value);
+        if (this.props.triggerCallback && this.triggerMatrix) {
+          const keyword = this.triggerMatrix.length ? this.triggerMatrix[this.triggerMatrix.length - 1] : null;
+          const index = this.triggerMatrix.length ? this.triggerMatrix.length - 1 : null;
+          this.props.triggerCallback(keyword, this.triggerMatrix, index);
+        }
+
         this.stopTracking();
         this.setState({ text: nextProps.value });
       }
@@ -63,7 +69,11 @@ export class MentionsTextInput extends Component {
   }
 
   resetTextbox() {
-    this.setState({ textInputHeight: this.props.textInputMinHeight });
+    this.triggerMatrix = [];
+    this.setState({
+      textInputHeight: this.props.textInputMinHeight,
+      text: ''
+    });
   }
 
   handleReset() {
@@ -495,10 +505,11 @@ export class MentionsTextInput extends Component {
           onChangeText={this.onChangeText.bind(this)}
           onSelectionChange={(event) => { this.onSelectionChange(event.nativeEvent.selection); }}
           returnKeyType={this.props.returnKeyType ? this.props.returnKeyType : 'send'}
+          onKeyPress={(e) => { if (this.props.onKeyPress) {this.props.onKeyPress(e);} }}
           multiline={true}
           value={this.state.text}
           style={[{ ...this.props.textInputStyle }, { height: Math.min(this.props.textInputMaxHeight, this.state.textInputHeight) }]}
-          placeholder={'Write a comment...'}
+          placeholder={this.props.placeholder ? this.props.placeholder : 'Write a comment...'}
           />
       </View>
     )
