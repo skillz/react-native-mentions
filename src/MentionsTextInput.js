@@ -577,7 +577,7 @@ export default class MentionsTextInput extends Component {
       return;
     }
 
-    if (this.hasNewLineChar(text)) {
+    if (this.hasNewLineChar(text) && Platform.OS == 'ios') {
       this.props.onKeyPress({ nativeEvent: { key: "Enter" } });
       return;
     }
