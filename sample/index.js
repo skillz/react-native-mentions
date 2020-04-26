@@ -10,7 +10,20 @@ import {
 } from 'react-native';
 import MentionsTextInput from 'react-native-mentions';
 
-import { getUserSuggestions } from './service';
+const DATA = [
+  {
+    UserName: 'John_Doe',
+    DisplayName: 'John Doe',
+  },
+  {
+    UserName: 'Jane_Doe',
+    DisplayName: 'Jane Doe',
+  }, 
+  {
+    UserName: 'Francisco_Doe',
+    DisplayName: 'Francisco Doe',
+  }
+];
 const { height, width } = Dimensions.get('window');
 export default class sampleApp extends Component {
 
@@ -24,20 +37,23 @@ export default class sampleApp extends Component {
     this.reqTimer = 0;
   }
 
-  renderSuggestionsRow({ item }, hidePanel) {
-    return (
-      <TouchableOpacity onPress={() => this.onSuggestionTap(item.UserName, hidePanel)}>
-        <View style={styles.suggestionsRowContainer}>
-          <View style={styles.userIconBox}>
-            <Text style={styles.usernameInitials}>{!!item.DisplayName && item.DisplayName.substring(0, 2).toUpperCase()}</Text>
+  renderSuggestionsRow(item, hidePanel) {
+    console.log('ITEM: ' + JSON.stringify(item));
+    if (item) {
+      return (
+        <TouchableOpacity onPress={() => this.onSuggestionTap(item.UserName, hidePanel)}>
+          <View style={styles.suggestionsRowContainer}>
+            <View style={styles.userIconBox}>
+              <Text style={styles.usernameInitials}>{!!item.DisplayName && item.DisplayName.substring(0, 2).toUpperCase()}</Text>
+            </View>
+            <View style={styles.userDetailsBox}>
+              <Text style={styles.displayNameText}>{item.DisplayName}</Text>
+              <Text style={styles.usernameText}>@{item.UserName}</Text>
+            </View>
           </View>
-          <View style={styles.userDetailsBox}>
-            <Text style={styles.displayNameText}>{item.DisplayName}</Text>
-            <Text style={styles.usernameText}>@{item.UserName}</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    )
+        </TouchableOpacity>
+      );
+    }
   }
 
   onSuggestionTap(username, hidePanel) {
@@ -51,22 +67,12 @@ export default class sampleApp extends Component {
 
 
   callback(keyword) {
-    if (this.reqTimer) {
-      clearTimeout(this.reqTimer);
-    }
-
-    this.reqTimer = setTimeout(() => {
-      getUserSuggestions(keyword)
-        .then(data => {
-          this.setState({
-            keyword: keyword,
-            data: [...data]
-          })
-        })
-        .catch(err => {
-          console.log(err);
-        });
-    }, 200);
+    console.log('fetch data: ' + JSON.stringify(DATA));
+    
+    this.setState({
+      keyword: keyword,
+      data: DATA,
+    });
   }
 
   render() {
@@ -89,7 +95,6 @@ export default class sampleApp extends Component {
           suggestionsData={this.state.data} // array of objects
           keyExtractor={(item, index) => item.UserName}
           suggestionRowHeight={45}
-
           horizontal={false} // defaut is true, change the orientation of the list
           MaxVisibleRowCount={3} // this is required if horizontal={false}
         />

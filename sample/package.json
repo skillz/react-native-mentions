@@ -7,14 +7,17 @@
 		"test": "jest"
 	},
 	"dependencies": {
-		"react": "16.2.0",
-		"react-native": "0.52.0",
-		"react-native-mentions": "git+https://github.com/harshq/react-native-mentions.git"
+		"react": "16.8.6",
+		"react-native": "git://github.com/skillz/react-native.git#67713f0e647c24ad909690954d43a3bca22ac304",
+		"react-native-mentions": "file:.."
 	},
 	"devDependencies": {
-		"babel-jest": "21.0.2",
-		"babel-preset-react-native": "4.0.0",
+		"@babel/core": "^7.4.5",
+		"babel-eslint": "^10.0.2",
+		"babel-plugin-inline-import": "^3.0.0",
+		"babel-plugin-syntax-jsx": "^6.18.0",
 		"jest": "21.1.0",
+		"metro-react-native-babel-preset": "^0.54.1",
 		"react-test-renderer": "16.0.0-alpha.12"
 	},
 	"jest": {
