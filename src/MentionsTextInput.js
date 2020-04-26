@@ -4,7 +4,6 @@ import {
   View,
   Animated,
   TextInput,
-  Modal,
   Platform,
   FlatList,
   ViewPropTypes
@@ -617,46 +616,28 @@ export default class MentionsTextInput extends Component {
     }
   }
 
-  onLayoutOfText(event) {
-    if (this._textInput) {
-      this._textInput.measure((x, y, width, height, pageX, pageY) => {
-          console.log('Layout: ', x, y, width, height, pageX, pageY);
-       })
-    }
-  }
-
-  getModalPosition() {
-
-  }
-
   render() {
-    // const modalStyle = {
-    //   position:'absolute',
-    //   bottom: pageY - height
-    // };
-
     return (
       <View>
-          <Animated.View style={[{ ...this.props.suggestionsPanelStyle }, { height: this.state.suggestionRowHeight }]}
-                        accessible={false}>
-            <FlatList
-              keyboardShouldPersistTaps={"always"}
-              horizontal={this.props.horizontal}
-              ListEmptyComponent={this.props.loadingComponent}
-              ItemSeparatorComponent={() => { return this.props.ItemSeparatorComponent ? this.props.ItemSeparatorComponent() : <View/> }}
-              enableEmptySections={true}
-              data={this.props.suggestionsData}
-              keyExtractor={this.props.keyExtractor}
-              renderItem={(rowData) => { return this.props.renderSuggestionsRow(rowData.item, this.stopTracking.bind(this)); }}
-            />
-          </Animated.View>
+        <Animated.View style={[{ ...this.props.suggestionsPanelStyle }, { height: this.state.suggestionRowHeight }]}
+                       accessible={false}>
+          <FlatList
+            keyboardShouldPersistTaps={"always"}
+            horizontal={this.props.horizontal}
+            ListEmptyComponent={this.props.loadingComponent}
+            ItemSeparatorComponent={() => { return this.props.ItemSeparatorComponent ? this.props.ItemSeparatorComponent() : <View/> }}
+            enableEmptySections={true}
+            data={this.props.suggestionsData}
+            keyExtractor={this.props.keyExtractor}
+            renderItem={(rowData) => { return this.props.renderSuggestionsRow(rowData.item, this.stopTracking.bind(this)); }}
+          />
+        </Animated.View>
         <TextInput
           {...this.props}
           onContentSizeChange={this.onContentSizeChange.bind(this)}
           ref={component => this._textInput = component}
           accessibilityLabel={ 'chat_input_text' }
           accessible={true}
-          onLayout={this.onLayoutOfText.bind(this)}
           testID={this.state.text}
           onChangeText={this.onChangeText.bind(this)}
           onSelectionChange={(event) => { this.onSelectionChange(event.nativeEvent.selection); }}
