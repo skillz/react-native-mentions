@@ -577,7 +577,7 @@ export default class MentionsTextInput extends Component {
       return;
     }
 
-    if (this.props.newLineInterceptor && this.hasNewLineChar(text) && Platform.OS == 'ios') {
+    if (this.props.newLineInterceptor && this.hasNewLineChar(text)) {
       const shouldSkipNewLine = this.props.newLineInterceptor({ nativeEvent: { key: "Enter" } });
       if (shouldSkipNewLine) {
         return;
