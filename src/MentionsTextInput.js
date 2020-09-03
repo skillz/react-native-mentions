@@ -75,6 +75,12 @@ export default class MentionsTextInput extends Component {
     }, SET_STATE_DELAY);
   }
 
+  blur() {
+    if (this._textInput) {
+      this._textInput.blur();
+    }
+  }
+
   setCursorPosition(position: number) {
     if (Platform.OS == 'ios') {
       return;
@@ -651,7 +657,7 @@ export default class MentionsTextInput extends Component {
           editable={this.props.editable}
           onFocus={ () => {if (this.props.onFocus) {this.props.onFocus();}} }
           onBlur={ () => {if (this.props.onBlur) {this.props.onBlur();}} }
-          multiline={true}
+          multiline={this.props.multiline}
           selection={Platform.OS == 'android' ? this.setSelection : undefined}
           value={this.state.text}
           style={[{ ...this.props.textInputStyle }, { height: Math.min(this.props.textInputMaxHeight, this.state.textInputHeight) }]}
@@ -686,6 +692,7 @@ MentionsTextInput.propTypes = {
   suggestionsData: PropTypes.array.isRequired,
   keyExtractor: PropTypes.func.isRequired,
   horizontal: PropTypes.bool,
+  multiline: PropTypes.bool,
   suggestionRowHeight: PropTypes.number.isRequired,
   MaxVisibleRowCount: function(props, propName, componentName) {
     if(!props.horizontal && !props.MaxVisibleRowCount) {
@@ -704,4 +711,5 @@ MentionsTextInput.defaultProps = {
   textInputMaxHeight: 80,
   horizontal: true,
   editable: true,
+  multiline: true,
 }
