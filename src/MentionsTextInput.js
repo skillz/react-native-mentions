@@ -262,9 +262,10 @@ export default class MentionsTextInput extends Component {
       return;
     }
 
+    const nameRegex = this.props.nameRegex ? this.props.nameRegex : '[a-zA-Z0-9_-]*';
     const start = this.triggerMatrix[index][0];
     const end = this.triggerMatrix[index][1];
-    const pattern = new RegExp(`${this.props.trigger}[a-zA-Z0-9_-]*`, `gi`);
+    const pattern = new RegExp(`${this.props.trigger}${nameRegex}`, 'gi');
     const triggerText = this.state.text.slice(start, end + this.getDistanceToNextSpace(end) + 1);
     const keywordArray = triggerText.match(pattern);
 
@@ -611,10 +612,11 @@ export default class MentionsTextInput extends Component {
   }
 
   onContentSizeChange(event) {
+    const extraHeight = this.props.extraContentSizeHeightOffset ?? 0;
     const singleLineThreshold = Platform.OS == 'android' ? 12 : 0;
     const heightDifference = event.nativeEvent.contentSize.height - this.props.textInputMinHeight;
     const newHeight = event.nativeEvent.contentSize.height + 10;
-    const height = heightDifference <= singleLineThreshold ? this.props.textInputMinHeight : newHeight;
+    const height = heightDifference <= singleLineThreshold ? this.props.textInputMinHeight : newHeight + extraHeight;
 
     this.setState({ textInputHeight: height });
 
